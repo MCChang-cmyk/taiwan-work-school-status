@@ -51,11 +51,13 @@
     "sensor": {
       "suspension_status": {
         "state": {
-          "suspended": "停止",
-          "normal": "照常",
+          "suspended": "停止上班、停止上課",
+          "normal": "照常上班、照常上課",
           "partial": "局部或部分時段停止",
           "unannounced": "尚未宣布",
-          "undetermined": "無法判定"
+          "undetermined": "無法判定",
+          "work_only": "僅停班、照常上課",
+          "school_only": "照常上班、僅停課"
         }
       }
     }

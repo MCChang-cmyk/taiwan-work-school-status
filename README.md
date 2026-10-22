@@ -1,5 +1,7 @@
 # 臺灣停班停課 — Home Assistant 自訂整合
 
+<img src="custom_components/taiwan_work_school/brand/icon.png" width="120" alt="臺灣停班停課專案圖示">
+
 從[行政院人事行政總處](https://www.dgpa.gov.tw/typh/daily/nds.html)讀取天然災害停班停課公告。支援 22 縣市複選、設定介面修改與兩種排程；不需帳號、API key 或額外 Python 套件。
 
 ## 透過 HACS 安裝
@@ -16,7 +18,7 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 
 ## 手動安裝
 
-1. 解壓縮 `dist/taiwan_work_school-1.0.1.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
+1. 解壓縮 `dist/taiwan_work_school-1.1.0.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
 2. 確認路徑為 `/config/custom_components/taiwan_work_school/manifest.json`，勿多包一層資料夾。
 3. 重新啟動 Home Assistant。
 4. 開啟「設定 → 裝置與服務 → 新增整合」，搜尋「臺灣停班停課」。
@@ -48,28 +50,28 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 
 ## 實體
 
-每個縣市建立 5 個 sensor。以臺北市為例（若已存在相同 entity ID，HA 可能加上數字後綴）：
+每個縣市建立 3 個 sensor：今天、明天的合併狀態，以及公告。以臺北市為例（若已存在相同 entity ID，HA 可能加上數字後綴）：
 
 | 實體 ID | 用途 |
 | --- | --- |
 | `sensor.taiwan_work_school_taipei_announcement` | 公告摘要；完整內容在 `announcements` 屬性 |
-| `sensor.taiwan_work_school_taipei_today_work` | 今天停班 |
-| `sensor.taiwan_work_school_taipei_today_school` | 今天停課 |
-| `sensor.taiwan_work_school_taipei_tomorrow_work` | 明天停班 |
-| `sensor.taiwan_work_school_taipei_tomorrow_school` | 明天停課 |
+| `sensor.taiwan_work_school_taipei_today` | 臺北市 今天停班停課 |
+| `sensor.taiwan_work_school_taipei_tomorrow` | 臺北市 明天停班停課 |
 
 狀態實體底層值：
 
 | 值 | 中文顯示 | 解讀 |
 | --- | --- | --- |
-| `suspended` | 停止 | 公告為全縣市、全日停止上班或上課 |
-| `normal` | 照常 | 公告為全縣市照常上班或上課 |
+| `suspended` | 停止上班、停止上課 | 公告為全縣市、全日停班停課 |
+| `normal` | 照常上班、照常上課 | 公告為全縣市照常上班上課 |
+| `work_only` | 僅停班、照常上課 | 停班但照常上課 |
+| `school_only` | 照常上班、僅停課 | 照常上班但停課 |
 | `partial` | 局部或部分時段停止 | 有鄉鎮、學校或時段限制，須查看完整公告 |
 | `unannounced` | 尚未宣布 | 未找到該日期可辨識的停班／停課結論；不代表照常 |
 | `undetermined` | 無法判定 | 同一天的全縣市公告存在衝突，須查看原文 |
 | `unavailable` | 無法使用 | 網路、HTTP 或頁面格式出錯；保留最後成功資料供查閱 |
 
-所有實體包含 `county`、`report_date`、`source_updated`、`last_successful_fetch`、`next_update`、`source`、`announcements` 屬性。日期狀態實體另有 `target_date`。
+所有實體包含 `county`、`report_date`、`source_updated`、`last_successful_fetch`、`next_update`、`source`、`announcements` 屬性。日期狀態實體另有 `target_date`、`work_status` 與 `school_status`，保留個別停班／停課結果。兩者不一致但任一側尚未宣布時顯示 `undetermined`；任一側為局部停止時顯示 `partial`，原文仍須查閱。
 
 解析以網頁標題日期為基準換算「今天／明天」，不以下載時間猜測；跨午夜本地重算今天／明天的實體（不額外連線），避免隔天仍顯示上一天的「明天」。未涵蓋新日期的舊公告會顯示 `unannounced`。公告摘要保留原文日期語意，可能屬於較早日期，請搭配 `report_date` 查看。
 
@@ -80,16 +82,16 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 以下只對「明天全縣市全天停止」發通知；局部停止請另外處理 `partial`。將 `notify.mobile_app_your_phone` 換成自己的通知動作。
 
 ```yaml
-alias: 明天臺北市停班通知
+alias: 明天臺北市停班停課通知
 triggers:
   - trigger: state
-    entity_id: sensor.taiwan_work_school_taipei_tomorrow_work
+    entity_id: sensor.taiwan_work_school_taipei_tomorrow
     to: suspended
 conditions: []
 actions:
   - action: notify.mobile_app_your_phone
     data:
-      title: 臺北市明天停班
+      title: 臺北市明天停班停課
       message: >-
         {{ state_attr('sensor.taiwan_work_school_taipei_announcement', 'announcements') | join('；') }}
 mode: single
@@ -116,4 +118,14 @@ Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現
 
 若新版 Python 的嚴格驗證回報 `Missing Subject Key Identifier`，整合只針對 `www.dgpa.gov.tw:443` 的這項錯誤重試一次，使用獨立的憑證相容性 context。仍驗證受信任 CA、憑證有效期及主機名稱，不使用 `ssl=False`，不修改 HA 共用的 SSL 設定，也不跟隨重新導向。其他憑證錯誤維持失敗。
 
-已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.0.1`，再重新載入整合。
+已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.1.0`，再重新載入整合。
+
+## 1.1.0：合併停班停課與專案圖示
+
+- 每縣市改為「今天停班停課」「明天停班停課」與「停班停課公告」3 個實體。
+- 原本 `_today_work`、`_today_school`、`_tomorrow_work`、`_tomorrow_school` 實體在重新載入時會移除。自動化及儀表板請改用 `_today`、`_tomorrow`；若只關心停班，請判斷新實體的 `work_status` 屬性。
+- 新狀態 `school_only` 與 `work_only` 保留停班／停課不同的情況，`suspended` 代表兩者皆停止。
+- 新增透明背景的原創青藍颱風／琥珀提醒圖示。來源與生成提示見 [assets/README.md](assets/README.md)。
+- 圖示隨整合放在 `brand/icon.png`；Home Assistant 2026.3 以上支援本機品牌圖示。舊版 HA 仍可使用整合，但不一定顯示品牌圖示。HACS 自己的列表是否顯示本機圖示取決於 HACS 版本。
+
+HACS 重新下載最新 `main` 後，重新啟動 Home Assistant，並重新整理瀏覽器。

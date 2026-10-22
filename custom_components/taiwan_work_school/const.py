@@ -35,4 +35,12 @@ CITIES = {
     "lienchiang": "連江縣",
     "kinmen": "金門縣",
 }
-STATUS_OPTIONS = ["suspended", "normal", "partial", "unannounced", "undetermined"]
+STATUS_OPTIONS = [
+    "suspended",
+    "normal",
+    "partial",
+    "unannounced",
+    "undetermined",
+    "work_only",
+    "school_only",
+]

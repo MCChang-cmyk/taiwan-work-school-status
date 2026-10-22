@@ -56,6 +56,22 @@ class Report:
     source_updated: datetime | None
     announcements: dict[str, tuple[str, ...]]
 
+    def combined_status(self, city: str, target: date) -> str:
+        """Combine work/school without hiding mixed or incomplete announcements."""
+        work = self.status(city, target, "上班")
+        school = self.status(city, target, "上課")
+        if work == school:
+            return work
+        if "undetermined" in (work, school):
+            return "undetermined"
+        if "partial" in (work, school):
+            return "partial"
+        if work == "suspended" and school == "normal":
+            return "work_only"
+        if work == "normal" and school == "suspended":
+            return "school_only"
+        return "undetermined"
+
     def status(self, city: str, target: date, kind: str) -> str:
         """Never infer full-city closure from a scoped or timed announcement."""
         full: set[str] = set()

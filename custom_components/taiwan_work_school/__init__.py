@@ -14,10 +14,15 @@ async def async_setup_entry(hass, entry):
     coordinator = WorkSchoolCoordinator(hass, entry, settings)
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    # Remove deselected counties so their old entities do not linger as unavailable.
+    # Retire the separate work/school entities and remove deselected counties.
     registry = er.async_get(hass)
+    active_ids = {
+        f"{city}:{suffix}"
+        for city in settings[CONF_CITIES]
+        for suffix in ("announcement", "today:combined", "tomorrow:combined")
+    }
     for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
-        if not any(entity.unique_id.startswith(f"{city}:") for city in settings[CONF_CITIES]):
+        if entity.unique_id not in active_ids:
             registry.async_remove(entity.entity_id)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     coordinator.start()

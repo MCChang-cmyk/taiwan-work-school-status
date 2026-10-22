@@ -15,8 +15,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     for city in coordinator.settings[CONF_CITIES]:
         entities.append(AnnouncementSensor(coordinator, city))
         for offset in (0, 1):
-            for kind in ("work", "school"):
-                entities.append(StatusSensor(coordinator, city, offset, kind))
+            entities.append(StatusSensor(coordinator, city, offset))
     async_add_entities(entities)
 
 
@@ -65,14 +64,14 @@ class StatusSensor(CountySensor):
     _attr_options = STATUS_OPTIONS
     _attr_translation_key = "suspension_status"
 
-    def __init__(self, coordinator, city, offset, kind):
+    def __init__(self, coordinator, city, offset):
         super().__init__(coordinator, city)
-        self.offset, self.kind = offset, kind
+        self.offset = offset
         day = "today" if offset == 0 else "tomorrow"
-        self._attr_unique_id = f"{city}:{day}:{kind}"
-        self.entity_id = f"sensor.taiwan_work_school_{city}_{day}_{kind}"
-        self._attr_name = f"{CITIES[city]} {'今天' if offset == 0 else '明天'}{'停班' if kind == 'work' else '停課'}"
-        self._attr_icon = "mdi:briefcase" if kind == "work" else "mdi:school"
+        self._attr_unique_id = f"{city}:{day}:combined"
+        self.entity_id = f"sensor.taiwan_work_school_{city}_{day}"
+        self._attr_name = f"{CITIES[city]} {'今天' if offset == 0 else '明天'}停班停課"
+        self._attr_icon = "mdi:weather-hurricane"
 
     @property
     def target_date(self):
@@ -80,10 +79,15 @@ class StatusSensor(CountySensor):
 
     @property
     def native_value(self):
-        return self.coordinator.data.status(
-            self.city, self.target_date, "上班" if self.kind == "work" else "上課"
-        )
+        return self.coordinator.data.combined_status(self.city, self.target_date)
 
     @property
     def extra_state_attributes(self):
-        return {**super().extra_state_attributes, "target_date": self.target_date.isoformat()}
+        report = self.coordinator.data
+        target = self.target_date
+        return {
+            **super().extra_state_attributes,
+            "target_date": target.isoformat(),
+            "work_status": report.status(self.city, target, "上班"),
+            "school_status": report.status(self.city, target, "上課"),
+        }

@@ -51,11 +51,13 @@
     "sensor": {
       "suspension_status": {
         "state": {
-          "suspended": "Suspended",
-          "normal": "Normal",
+          "suspended": "Work and school suspended",
+          "normal": "Work and school normal",
           "partial": "Partial / limited hours",
           "unannounced": "Not announced",
-          "undetermined": "Undetermined"
+          "undetermined": "Undetermined",
+          "work_only": "Work suspended, school normal",
+          "school_only": "Work normal, school suspended"
         }
       }
     }

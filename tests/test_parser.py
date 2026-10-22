@@ -73,3 +73,23 @@ def test_alias_and_blank_rows():
     report = parse_html(html)
     assert set(report.announcements) == set(CITIES)
     assert report.status("taipei", report.report_date, "上班") == "unannounced"
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("今天停止上班、停止上課。", "suspended"),
+        ("今天照常上班、照常上課。", "normal"),
+        ("今天照常上班、停止上課。", "school_only"),
+        ("今天停止上班、照常上課。", "work_only"),
+        ("某國小：今天停止上班、停止上課。", "partial"),
+        ("今天下午停止上班、停止上課。", "partial"),
+        ("今天停止上班。", "undetermined"),
+        ("今天停止上課。", "undetermined"),
+        ("尚未宣布訊息", "unannounced"),
+        ("今天停止上班、停止上課。今天照常上班。", "undetermined"),
+    ],
+)
+def test_combined_status(text, expected):
+    report = Report(date(2026, 10, 23), None, {"taipei": (text,)})
+    assert report.combined_status("taipei", report.report_date) == expected

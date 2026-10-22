@@ -123,21 +123,19 @@ async def test_sensors_and_midnight(hass, settings):
     hass.data[DOMAIN] = {"test": coordinator}
     entities = []
     await setup_sensors(hass, entry(settings), entities.extend)
-    assert len(entities) == 10
-    assert len({sensor.unique_id for sensor in entities}) == 10
+    assert len(entities) == 6
+    assert len({sensor.unique_id for sensor in entities}) == 6
     by_id = {sensor.entity_id: sensor for sensor in entities}
     with patch("custom_components.taiwan_work_school.sensor.dt_util.utcnow", return_value=NOW):
-        assert by_id["sensor.taiwan_work_school_taipei_tomorrow_work"].native_value == "suspended"
-        assert by_id["sensor.taiwan_work_school_taitung_tomorrow_work"].native_value == "partial"
-        assert by_id["sensor.taiwan_work_school_taipei_today_work"].native_value == "unannounced"
+        assert by_id["sensor.taiwan_work_school_taipei_tomorrow"].native_value == "suspended"
+        assert by_id["sensor.taiwan_work_school_taitung_tomorrow"].native_value == "partial"
+        assert by_id["sensor.taiwan_work_school_taipei_today"].native_value == "unannounced"
     tomorrow = NOW + timedelta(days=1)
     with patch("custom_components.taiwan_work_school.sensor.dt_util.utcnow", return_value=tomorrow):
-        assert by_id["sensor.taiwan_work_school_taipei_today_work"].native_value == "suspended"
-        assert by_id["sensor.taiwan_work_school_taipei_tomorrow_work"].native_value == "unannounced"
+        assert by_id["sensor.taiwan_work_school_taipei_today"].native_value == "suspended"
+        assert by_id["sensor.taiwan_work_school_taipei_tomorrow"].native_value == "unannounced"
         assert (
-            by_id["sensor.taiwan_work_school_taipei_today_work"].extra_state_attributes[
-                "target_date"
-            ]
+            by_id["sensor.taiwan_work_school_taipei_today"].extra_state_attributes["target_date"]
             == "2026-10-23"
         )
     coordinator.async_set_update_error(UpdateFailed("offline"))
@@ -193,7 +191,7 @@ async def test_entry_lifecycle(hass, settings):
             "custom_components.taiwan_work_school.er.async_entries_for_config_entry",
             return_value=[
                 SimpleNamespace(unique_id="kinmen:today:work", entity_id="sensor.old"),
-                SimpleNamespace(unique_id="taipei:today:work", entity_id="sensor.keep"),
+                SimpleNamespace(unique_id="taipei:today:combined", entity_id="sensor.keep"),
             ],
         ),
     ):
@@ -236,14 +234,31 @@ async def test_full_ha_install_options_reload(hass, settings):
         config_entry = result["result"]
         await hass.async_block_till_done()
         assert config_entry.state == config_entries.ConfigEntryState.LOADED
-        state = hass.states.get("sensor.taiwan_work_school_taipei_tomorrow_work")
+        state = hass.states.get("sensor.taiwan_work_school_taipei_tomorrow")
         assert state is not None
         assert state.state == "suspended"
         assert state.attributes["target_date"] == "2026-10-23"
         assert state.attributes["next_update"] is not None
         assert (
-            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 10
+            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 6
         )
+        assert state.attributes["work_status"] == "suspended"
+        assert state.attributes["school_status"] == "suspended"
+        # Previously installed separate sensors are removed on upgrade/reload.
+        registry = er.async_get(hass)
+        for kind in ("work", "school"):
+            registry.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                f"taipei:today:{kind}",
+                config_entry=config_entry,
+                suggested_object_id=f"old_taipei_{kind}",
+            )
+        assert await hass.config_entries.async_reload(config_entry.entry_id)
+        await hass.async_block_till_done()
+        registered = er.async_entries_for_config_entry(registry, config_entry.entry_id)
+        assert len(registered) == 6
+        assert not any(entity.unique_id.endswith((":work", ":school")) for entity in registered)
         # Singleton flows abort, and options run through HA's real options manager.
         duplicate = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
         assert duplicate["reason"] == "already_configured"
@@ -254,7 +269,7 @@ async def test_full_ha_install_options_reload(hass, settings):
         assert options_result["type"] == "create_entry"
         await hass.async_block_till_done()
         assert (
-            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 5
+            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 3
         )
-        assert hass.states.get("sensor.taiwan_work_school_taitung_tomorrow_work") is None
+        assert hass.states.get("sensor.taiwan_work_school_taitung_tomorrow") is None
         assert await hass.config_entries.async_unload(config_entry.entry_id)
