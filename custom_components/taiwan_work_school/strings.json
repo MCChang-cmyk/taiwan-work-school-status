@@ -1,0 +1,63 @@
+{
+  "title": "Taiwan Work and School Status",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Taiwan Work and School Status",
+        "description": "Evening mode starts at 20:00 Asia/Taipei and ends by 20:15. Interval × (count − 1) must be ≤ 15. Hourly mode ignores the evening parameters.",
+        "data": {
+          "cities": "Counties / cities (multiple)",
+          "update_mode": "Update mode",
+          "evening_interval": "Evening interval (minutes)",
+          "evening_count": "Total evening requests (including 20:00)"
+        }
+      }
+    },
+    "error": {
+      "select_city": "Select at least one county/city.",
+      "window_exceeded": "The schedule exceeds 20:15. Interval × (count − 1) must be ≤ 15."
+    },
+    "abort": {
+      "already_configured": "Already configured. Use the integration options to change counties and schedule."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Counties and schedule",
+        "description": "Evening mode starts at 20:00 Asia/Taipei and ends by 20:15. Interval × (count − 1) must be ≤ 15. Hourly mode ignores the evening parameters.",
+        "data": {
+          "cities": "Counties / cities (multiple)",
+          "update_mode": "Update mode",
+          "evening_interval": "Evening interval (minutes)",
+          "evening_count": "Total evening requests (including 20:00)"
+        }
+      }
+    },
+    "error": {
+      "select_city": "Select at least one county/city.",
+      "window_exceeded": "The schedule exceeds 20:15. Interval × (count − 1) must be ≤ 15."
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "hourly": "Every hour",
+        "evening": "Daily 20:00–20:15 (Taipei)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "suspension_status": {
+        "state": {
+          "suspended": "Suspended",
+          "normal": "Normal",
+          "partial": "Partial / limited hours",
+          "unannounced": "Not announced",
+          "undetermined": "Undetermined"
+        }
+      }
+    }
+  }
+}

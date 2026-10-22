@@ -1,0 +1,63 @@
+{
+  "title": "臺灣停班停課",
+  "config": {
+    "step": {
+      "user": {
+        "title": "設定臺灣停班停課",
+        "description": "每次更新共用一次官方網頁請求。晚間模式依台灣時間從 20:00 開始，最晚 20:15；間隔 ×（總次數 − 1）須小於等於 15。每小時模式不使用晚間參數。",
+        "data": {
+          "cities": "縣市（可複選）",
+          "update_mode": "更新模式",
+          "evening_interval": "晚間更新間隔（分鐘）",
+          "evening_count": "晚間更新總次數（含 20:00 第一次）"
+        }
+      }
+    },
+    "error": {
+      "select_city": "請至少選擇一個縣市。",
+      "window_exceeded": "更新次數超過 20:15，請減少間隔或總次數（間隔 ×（總次數 − 1）≤ 15）。"
+    },
+    "abort": {
+      "already_configured": "已設定此整合，請從整合的設定選項修改縣市與排程。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "縣市與更新排程",
+        "description": "每次更新共用一次官方網頁請求。晚間模式依台灣時間從 20:00 開始，最晚 20:15；間隔 ×（總次數 − 1）須小於等於 15。每小時模式不使用晚間參數。",
+        "data": {
+          "cities": "縣市（可複選）",
+          "update_mode": "更新模式",
+          "evening_interval": "晚間更新間隔（分鐘）",
+          "evening_count": "晚間更新總次數（含 20:00 第一次）"
+        }
+      }
+    },
+    "error": {
+      "select_city": "請至少選擇一個縣市。",
+      "window_exceeded": "更新次數超過 20:15，請減少間隔或總次數（間隔 ×（總次數 − 1）≤ 15）。"
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "hourly": "每小時更新一次",
+        "evening": "每天 20:00–20:15 密集更新"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "suspension_status": {
+        "state": {
+          "suspended": "停止",
+          "normal": "照常",
+          "partial": "局部或部分時段停止",
+          "unannounced": "尚未宣布",
+          "undetermined": "無法判定"
+        }
+      }
+    }
+  }
+}

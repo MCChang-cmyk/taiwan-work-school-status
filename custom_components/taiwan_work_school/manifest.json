@@ -1,0 +1,14 @@
+{
+  "domain": "taiwan_work_school",
+  "name": "臺灣停班停課",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/MCChang-cmyk/taiwan-work-school-status",
+  "codeowners": [
+    "@MCChang-cmyk"
+  ],
+  "iot_class": "cloud_polling",
+  "integration_type": "service",
+  "requirements": [],
+  "issue_tracker": "https://github.com/MCChang-cmyk/taiwan-work-school-status/issues"
+}
