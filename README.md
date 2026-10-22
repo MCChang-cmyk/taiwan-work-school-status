@@ -16,7 +16,7 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 
 ## 手動安裝
 
-1. 解壓縮 `dist/taiwan_work_school-1.0.0.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
+1. 解壓縮 `dist/taiwan_work_school-1.0.1.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
 2. 確認路徑為 `/config/custom_components/taiwan_work_school/manifest.json`，勿多包一層資料夾。
 3. 重新啟動 Home Assistant。
 4. 開啟「設定 → 裝置與服務 → 新增整合」，搜尋「臺灣停班停課」。
@@ -111,3 +111,9 @@ python3.12 -m venv .venv
 Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現行 coordinator、config flow、options flow、sensor API 撰寫；其他 HA 版本仍應在自己的環境驗證。頁面若改版，解析會要求完整 22 縣市及有效日期，失敗時標為無法使用，避免將錯誤頁當作正常上班上課。
 
 實作參考：[Home Assistant 資料更新](https://developers.home-assistant.io/docs/integration_fetching_data/)、[設定流程](https://developers.home-assistant.io/docs/config_entries_config_flow_handler/)、[Sensor](https://developers.home-assistant.io/docs/core/entity/sensor/)。
+
+## 1.0.1：DGPA 憑證相容性修正
+
+若新版 Python 的嚴格驗證回報 `Missing Subject Key Identifier`，整合只針對 `www.dgpa.gov.tw:443` 的這項錯誤重試一次，使用獨立的憑證相容性 context。仍驗證受信任 CA、憑證有效期及主機名稱，不使用 `ssl=False`，不修改 HA 共用的 SSL 設定，也不跟隨重新導向。其他憑證錯誤維持失敗。
+
+已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.0.1`，再重新載入整合。

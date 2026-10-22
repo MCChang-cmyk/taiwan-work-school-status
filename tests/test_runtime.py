@@ -51,6 +51,7 @@ def entry(settings):
 
 def response_session(html=HTML):
     response = MagicMock()
+    response.status = 200
     response.text = AsyncMock(return_value=html)
     context = MagicMock()
     context.__aenter__ = AsyncMock(return_value=response)

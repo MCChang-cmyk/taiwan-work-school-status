@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import ssl
 from datetime import datetime, time, timedelta
 
 import aiohttp
@@ -16,6 +17,7 @@ from homeassistant.util import dt as dt_util
 from .const import CONF_COUNT, CONF_INTERVAL, CONF_MODE, NAME, SOURCE_URL, TAIPEI
 from .parser import ParseError, Report, parse_html
 from .schedule import next_evening_update
+from .tls import dgpa_compatibility_context
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,18 +31,46 @@ class WorkSchoolCoordinator(DataUpdateCoordinator[Report]):
         self._cancel_update = None
         self._cancel_midnight = None
         self._stopped = False
+        self._dgpa_ssl_context: ssl.SSLContext | None = None
 
     async def _async_update_data(self):
         try:
             async with asyncio.timeout(30):
-                async with async_get_clientsession(self.hass).get(SOURCE_URL) as response:
-                    response.raise_for_status()
-                    html = await response.text(encoding="utf-8-sig")
+                try:
+                    html = await self._fetch_html()
+                except aiohttp.ClientConnectorCertificateError as err:
+                    # OpenSSL 86: legacy CA lacks Subject Key Identifier. Other
+                    # failures (expiry, unknown issuer, wrong host) still fail.
+                    if (
+                        self._dgpa_ssl_context is not None
+                        or err.host != "www.dgpa.gov.tw"
+                        or err.port != 443
+                        or getattr(err.certificate_error, "verify_code", None) != 86
+                    ):
+                        raise
+                    self._dgpa_ssl_context = await self.hass.async_add_executor_job(
+                        dgpa_compatibility_context
+                    )
+                    _LOGGER.warning(
+                        "DGPA certificate chain is missing Subject Key Identifier; "
+                        "using a site-specific compatibility context with CA and hostname verification"
+                    )
+                    html = await self._fetch_html()
                 report = await self.hass.async_add_executor_job(parse_html, html)
         except (aiohttp.ClientError, TimeoutError, UnicodeError, ParseError) as err:
             raise UpdateFailed(f"Unable to read DGPA announcements: {err}") from err
         self.fetched_at = dt_util.utcnow()
         return report
+
+    async def _fetch_html(self):
+        # Do not carry the compatibility context to another host via redirects.
+        async with async_get_clientsession(self.hass).get(
+            SOURCE_URL, ssl=self._dgpa_ssl_context, allow_redirects=False
+        ) as response:
+            response.raise_for_status()
+            if 300 <= response.status < 400:
+                raise UpdateFailed("Unexpected redirect from DGPA announcement URL")
+            return await response.text(encoding="utf-8-sig")
 
     @callback
     def start(self):
