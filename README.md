@@ -2,7 +2,19 @@
 
 從[行政院人事行政總處](https://www.dgpa.gov.tw/typh/daily/nds.html)讀取天然災害停班停課公告。支援 22 縣市複選、設定介面修改與兩種排程；不需帳號、API key 或額外 Python 套件。
 
-## 安裝
+## 透過 HACS 安裝
+
+HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出現 GitHub 404。
+
+1. 在 HACS 右上角選單開啟「自訂儲存庫」。
+2. 網址填入 `https://github.com/MCChang-cmyk/taiwan-work-school-status`。
+3. 類型選擇 **Integration**，按「新增」。
+4. 搜尋「臺灣停班停課」並下載；沒有 release 時使用預設分支 `main`。
+5. 重新啟動 Home Assistant，再到「設定 → 裝置與服務 → 新增整合」搜尋「臺灣停班停課」。
+
+本專案已提供 HACS 自訂儲存庫設定，尚未列入 HACS 預設清單。
+
+## 手動安裝
 
 1. 解壓縮 `dist/taiwan_work_school-1.0.0.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
 2. 確認路徑為 `/config/custom_components/taiwan_work_school/manifest.json`，勿多包一層資料夾。
