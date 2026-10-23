@@ -244,6 +244,19 @@ async def test_full_ha_install_options_reload(hass, settings):
         )
         assert state.attributes["work_status"] == "suspended"
         assert state.attributes["school_status"] == "suspended"
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]
+        for phrase, expected in (
+            ("明天已達停止上班及上課標準。", "criteria_met"),
+            ("明天未達停止上班及上課標準。", "criteria_not_met"),
+        ):
+            coordinator.async_set_updated_data(
+                parse_html(HTML.replace("明天停止上班、停止上課。", phrase))
+            )
+            await hass.async_block_till_done()
+            state = hass.states.get("sensor.taiwan_work_school_taipei_tomorrow")
+            assert state.state == expected
+            assert state.attributes["work_status"] == expected
+            assert state.attributes["school_status"] == expected
         # Previously installed separate sensors are removed on upgrade/reload.
         registry = er.async_get(hass)
         for kind in ("work", "school"):

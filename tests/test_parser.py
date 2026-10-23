@@ -93,3 +93,36 @@ def test_alias_and_blank_rows():
 def test_combined_status(text, expected):
     report = Report(date(2026, 10, 23), None, {"taipei": (text,)})
     assert report.combined_status("taipei", report.report_date) == expected
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("明天已達停止上班及上課標準。", "criteria_met"),
+        ("明天未達停止上班及上課標準。", "criteria_not_met"),
+        ("明日已達停止上班及停止上課標準。", "criteria_met"),
+        ("明天已達停止上課及上班標準。", "criteria_met"),
+        ("明天未達停止上班及上課標準。明天照常上班、照常上課。", "normal"),
+        ("明天已達停止上班及上課標準。明天停止上班、停止上課。", "suspended"),
+        ("明天未達停止上班及上課標準。明天停止上班、停止上課。", "suspended"),
+        ("某鄉：明天已達停止上班及上課標準。", "undetermined"),
+        ("明天已達停止上班及上課標準。明天未達停止上班及上課標準。", "undetermined"),
+    ],
+)
+def test_criteria_assessments_are_not_closure_decisions(text, expected):
+    report = Report(date(2026, 10, 23), None, {"taipei": ("今天停止上班、停止上課。", text)})
+    assert report.combined_status("taipei", date(2026, 10, 23)) == "suspended"
+    assert report.combined_status("taipei", date(2026, 10, 24)) == expected
+    assert report.status("taipei", date(2026, 10, 24), "上班") == expected
+    assert report.status("taipei", date(2026, 10, 24), "上課") == expected
+
+
+def test_real_criteria_page():
+    html = (FIXTURE.parent / "dgpa_20261023_criteria.html").read_text()
+    report = parse_html(html)
+    assert report.report_date == date(2026, 10, 23)
+    assert report.combined_status("taipei", date(2026, 10, 23)) == "suspended"
+    assert report.combined_status("taipei", date(2026, 10, 24)) == "criteria_met"
+    assert report.combined_status("kaohsiung", date(2026, 10, 24)) == "criteria_not_met"
+    assert report.combined_status("hualien", date(2026, 10, 24)) == "criteria_not_met"
+    assert report.combined_status("kinmen", date(2026, 10, 23)) == "normal"

@@ -57,7 +57,9 @@
           "unannounced": "Not announced",
           "undetermined": "Undetermined",
           "work_only": "Work suspended, school normal",
-          "school_only": "Work normal, school suspended"
+          "school_only": "Work normal, school suspended",
+          "criteria_met": "Closure criteria met",
+          "criteria_not_met": "Closure criteria not met"
         }
       }
     }

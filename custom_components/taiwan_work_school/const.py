@@ -43,4 +43,6 @@ STATUS_OPTIONS = [
     "undetermined",
     "work_only",
     "school_only",
+    "criteria_met",
+    "criteria_not_met",
 ]

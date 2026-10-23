@@ -75,21 +75,44 @@ class Report:
     def status(self, city: str, target: date, kind: str) -> str:
         """Never infer full-city closure from a scoped or timed announcement."""
         full: set[str] = set()
+        criteria: set[str] = set()
+        scoped_criteria = False
         partial = False
         scoped_normal = False
         for line in self.announcements.get(city, ()):
             for segment in re.split(r"[。；;\n]+", normalize(line)):
                 if not segment or _target_date(segment, self.report_date) != target:
                     continue
-                closed = f"停止{kind}" in segment
-                normal = f"照常{kind}" in segment
-                if not (closed or normal):
-                    continue
+                # A threshold assessment is not itself a closure announcement.
+                # Remove it before matching direct "停止上班" substrings.
+                assessments = list(
+                    re.finditer(
+                        r"(已達|未達)(停止(?:上班|上課)(?:(?:及|與|、)(?:停止)?(?:上班|上課))?)標準",
+                        segment,
+                    )
+                )
+                direct = re.sub(
+                    r"(已達|未達)(停止(?:上班|上課)(?:(?:及|與|、)(?:停止)?(?:上班|上課))?)標準",
+                    "",
+                    segment,
+                )
+                closed = f"停止{kind}" in direct
+                normal = f"照常{kind}" in direct
                 scoped = bool(
                     re.search(
                         r"[:：]|(?:上午|下午|晚上|晚間|中午|\d{1,2}[時:：]|起|部分|部份)", segment
                     )
                 )
+                for assessment in assessments:
+                    if kind in assessment[2]:
+                        if scoped:
+                            scoped_criteria = True
+                        else:
+                            criteria.add(
+                                "criteria_met" if assessment[1] == "已達" else "criteria_not_met"
+                            )
+                if not (closed or normal):
+                    continue
                 if scoped:
                     partial |= closed
                     scoped_normal |= normal
@@ -99,7 +122,11 @@ class Report:
             return "undetermined"
         if partial or (scoped_normal and "suspended" in full):
             return "partial"
-        return next(iter(full), "unannounced")
+        if full:
+            return next(iter(full))
+        if scoped_criteria or len(criteria) > 1:
+            return "undetermined"
+        return next(iter(criteria), "unannounced")
 
 
 def _target_date(text: str, base: date) -> date | None:

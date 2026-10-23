@@ -18,7 +18,7 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 
 ## 手動安裝
 
-1. 解壓縮 `dist/taiwan_work_school-1.1.0.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
+1. 解壓縮 `dist/taiwan_work_school-1.1.1.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
 2. 確認路徑為 `/config/custom_components/taiwan_work_school/manifest.json`，勿多包一層資料夾。
 3. 重新啟動 Home Assistant。
 4. 開啟「設定 → 裝置與服務 → 新增整合」，搜尋「臺灣停班停課」。
@@ -67,6 +67,8 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 | `work_only` | 僅停班、照常上課 | 停班但照常上課 |
 | `school_only` | 照常上班、僅停課 | 照常上班但停課 |
 | `partial` | 局部或部分時段停止 | 有鄉鎮、學校或時段限制，須查看完整公告 |
+| `criteria_met` | 已達停班停課標準 | 官方公布已達標準，保留其評估用語，不視為正式停班停課公告 |
+| `criteria_not_met` | 未達停班停課標準 | 官方公布未達標準，不等同照常上班上課公告 |
 | `unannounced` | 尚未宣布 | 未找到該日期可辨識的停班／停課結論；不代表照常 |
 | `undetermined` | 無法判定 | 同一天的全縣市公告存在衝突，須查看原文 |
 | `unavailable` | 無法使用 | 網路、HTTP 或頁面格式出錯；保留最後成功資料供查閱 |
@@ -118,7 +120,7 @@ Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現
 
 若新版 Python 的嚴格驗證回報 `Missing Subject Key Identifier`，整合只針對 `www.dgpa.gov.tw:443` 的這項錯誤重試一次，使用獨立的憑證相容性 context。仍驗證受信任 CA、憑證有效期及主機名稱，不使用 `ssl=False`，不修改 HA 共用的 SSL 設定，也不跟隨重新導向。其他憑證錯誤維持失敗。
 
-已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.1.0`，再重新載入整合。
+已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.1.1`，再重新載入整合。
 
 ## 1.1.0：合併停班停課與專案圖示
 
@@ -129,3 +131,9 @@ Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現
 - 圖示隨整合放在 `brand/icon.png`；Home Assistant 2026.3 以上支援本機品牌圖示。舊版 HA 仍可使用整合，但不一定顯示品牌圖示。HACS 自己的列表是否顯示本機圖示取決於 HACS 版本。
 
 HACS 重新下載最新 `main` 後，重新啟動 Home Assistant，並重新整理瀏覽器。
+
+## 1.1.1：辨識已達／未達停班停課標準
+
+支援「明天已達停止上班及上課標準」「明天未達停止上班及上課標準」，分別顯示 `criteria_met` 與 `criteria_not_met`。不再把這兩種文字中的「停止上班」片段誤判為實際停班，也不會因缺少「停止上課」而遺漏評估訊息。當同一日期另有明確的停止／照常公告時，優先顯示該公告。局部地區的標準評估與衝突評估不擴大解讀成全縣市結果，顯示 `undetermined` 並保留原文。
+
+停班停課通知範例仍只對 `suspended` 觸發；若也想在「已達標準」時收到提醒，請另外處理 `criteria_met`。

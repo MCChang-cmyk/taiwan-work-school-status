@@ -57,7 +57,9 @@
           "unannounced": "尚未宣布",
           "undetermined": "無法判定",
           "work_only": "僅停班、照常上課",
-          "school_only": "照常上班、僅停課"
+          "school_only": "照常上班、僅停課",
+          "criteria_met": "已達停班停課標準",
+          "criteria_not_met": "未達停班停課標準"
         }
       }
     }
