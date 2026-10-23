@@ -197,6 +197,7 @@ async def test_entry_lifecycle(hass, settings):
     ):
         assert await async_setup_entry(hass, config_entry)
         registry.return_value.async_remove.assert_called_once_with("sensor.old")
+        coordinator.async_config_entry_first_refresh.assert_awaited_once()
         coordinator.start.assert_called_once()
         assert await async_unload_entry(hass, config_entry)
         coordinator.stop.assert_called_once()
@@ -240,11 +241,23 @@ async def test_full_ha_install_options_reload(hass, settings):
         assert state.attributes["target_date"] == "2026-10-23"
         assert state.attributes["next_update"] is not None
         assert (
-            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 6
+            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 7
         )
         assert state.attributes["work_status"] == "suspended"
         assert state.attributes["school_status"] == "suspended"
         coordinator = hass.data[DOMAIN][config_entry.entry_id]
+        # Startup fetched once. Pressing the real HA button fetches once more
+        # for all selected counties, without moving the original timer.
+        assert session.get.call_count == 1
+        next_update = coordinator.next_update
+        button = hass.states.get("button.taiwan_work_school_refresh")
+        assert button is not None
+        assert button.state != "unavailable"
+        await hass.services.async_call(
+            "button", "press", {"entity_id": button.entity_id}, blocking=True
+        )
+        assert session.get.call_count == 2
+        assert coordinator.next_update == next_update
         for phrase, expected in (
             ("明天已達停止上班及上課標準。", "criteria_met"),
             ("明天未達停止上班及上課標準。", "criteria_not_met"),
@@ -267,10 +280,12 @@ async def test_full_ha_install_options_reload(hass, settings):
                 config_entry=config_entry,
                 suggested_object_id=f"old_taipei_{kind}",
             )
+        requests_before_reload = session.get.call_count
         assert await hass.config_entries.async_reload(config_entry.entry_id)
+        assert session.get.call_count == requests_before_reload + 1
         await hass.async_block_till_done()
         registered = er.async_entries_for_config_entry(registry, config_entry.entry_id)
-        assert len(registered) == 6
+        assert len(registered) == 7
         assert not any(entity.unique_id.endswith((":work", ":school")) for entity in registered)
         # Singleton flows abort, and options run through HA's real options manager.
         duplicate = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
@@ -282,7 +297,7 @@ async def test_full_ha_install_options_reload(hass, settings):
         assert options_result["type"] == "create_entry"
         await hass.async_block_till_done()
         assert (
-            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 3
+            len(er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)) == 4
         )
         assert hass.states.get("sensor.taiwan_work_school_taitung_tomorrow") is None
         assert await hass.config_entries.async_unload(config_entry.entry_id)

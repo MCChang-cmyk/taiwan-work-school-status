@@ -18,7 +18,7 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 
 ## 手動安裝
 
-1. 解壓縮 `dist/taiwan_work_school-1.1.1.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
+1. 解壓縮 `dist/taiwan_work_school-1.2.0.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
 2. 確認路徑為 `/config/custom_components/taiwan_work_school/manifest.json`，勿多包一層資料夾。
 3. 重新啟動 Home Assistant。
 4. 開啟「設定 → 裝置與服務 → 新增整合」，搜尋「臺灣停班停課」。
@@ -47,6 +47,22 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 晚間模式在其他時段不自動連線。若 20:07 重新啟動，啟動時抓一次，接著只執行尚未到的 20:09、20:12、20:15，不補發錯過的請求。全部時間固定採 `Asia/Taipei`，與 HA 本身時區無關。可用 Home Assistant 的 `homeassistant.update_entity` 動作手動更新。
 
 官方可能在 20:15 之後才公布或修改。若需要追蹤其他時段變動，請選每小時模式。
+
+## 手動更新按鈕
+
+重開機、重新載入整合、儲存設定時，本來就會立即讀取最新公告，不必等排程。
+
+另提供一個共用按鈕 **臺灣停班停課 更新資訊**（`button.taiwan_work_school_refresh`）。在「設定 → 裝置與服務 → 臺灣停班停課 → 實體」找到它，或加到儀表板。按一次更新全部已選縣市，無論目前是每小時或晚間模式。按鈕在抓取失敗時仍可按，方便網路恢復後重試；更新失敗會顯示錯誤。連續點擊會由共用 coordinator 合併／限制頻率，避免對官方網站發出大量請求。手動更新不改變下一次原定排程。
+
+也可從「開發者工具 → 動作」執行：
+
+```yaml
+action: button.press
+target:
+  entity_id: button.taiwan_work_school_refresh
+```
+
+可從 sensor 的 `last_successful_fetch` 屬性確認最後一次成功抓取時間，`source_updated` 則是官方網頁標示的更新時間，兩者意義不同。按鈕顯示的時間代表按下時間，不能代替抓取成功時間。
 
 ## 實體
 
@@ -120,7 +136,7 @@ Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現
 
 若新版 Python 的嚴格驗證回報 `Missing Subject Key Identifier`，整合只針對 `www.dgpa.gov.tw:443` 的這項錯誤重試一次，使用獨立的憑證相容性 context。仍驗證受信任 CA、憑證有效期及主機名稱，不使用 `ssl=False`，不修改 HA 共用的 SSL 設定，也不跟隨重新導向。其他憑證錯誤維持失敗。
 
-已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.1.1`，再重新載入整合。
+已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.2.0`，再重新載入整合。
 
 ## 1.1.0：合併停班停課與專案圖示
 
@@ -137,3 +153,7 @@ HACS 重新下載最新 `main` 後，重新啟動 Home Assistant，並重新整�
 支援「明天已達停止上班及上課標準」「明天未達停止上班及上課標準」，分別顯示 `criteria_met` 與 `criteria_not_met`。不再把這兩種文字中的「停止上班」片段誤判為實際停班，也不會因缺少「停止上課」而遺漏評估訊息。當同一日期另有明確的停止／照常公告時，優先顯示該公告。局部地區的標準評估與衝突評估不擴大解讀成全縣市結果，顯示 `undetermined` 並保留原文。
 
 停班停課通知範例仍只對 `suspended` 觸發；若也想在「已達標準」時收到提醒，請另外處理 `criteria_met`。
+
+## 1.2.0：手動更新資訊按鈕
+
+新增共用的更新按鈕，可隨時更新全部縣市，並可在抓取失敗後重試。啟動及重新載入時立即抓取公告的既有行為保持不變。

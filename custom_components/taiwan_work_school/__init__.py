@@ -6,7 +6,7 @@ from homeassistant.helpers import entity_registry as er
 from .const import CONF_CITIES, DEFAULTS, DOMAIN
 from .coordinator import WorkSchoolCoordinator
 
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.BUTTON]
 
 
 async def async_setup_entry(hass, entry):
@@ -21,6 +21,7 @@ async def async_setup_entry(hass, entry):
         for city in settings[CONF_CITIES]
         for suffix in ("announcement", "today:combined", "tomorrow:combined")
     }
+    active_ids.add("refresh")
     for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
         if entity.unique_id not in active_ids:
             registry.async_remove(entity.entity_id)
