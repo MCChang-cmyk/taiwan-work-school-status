@@ -16,7 +16,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import CONF_COUNT, CONF_INTERVAL, CONF_MODE, NAME, SOURCE_URL, TAIPEI
 from .parser import ParseError, Report, parse_html
-from .schedule import next_evening_update
+from .schedule import next_scheduled_update
 from .tls import dgpa_compatibility_context
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,10 +83,11 @@ class WorkSchoolCoordinator(DataUpdateCoordinator[Report]):
         if self._stopped:
             return
         now = dt_util.utcnow()
-        self.next_update = (
-            now + timedelta(hours=1)
-            if self.settings[CONF_MODE] == "hourly"
-            else next_evening_update(now, self.settings[CONF_INTERVAL], self.settings[CONF_COUNT])
+        self.next_update = next_scheduled_update(
+            now,
+            self.settings[CONF_INTERVAL],
+            self.settings[CONF_COUNT],
+            include_evening=self.settings[CONF_MODE] == "evening",
         )
         self._cancel_update = async_track_point_in_utc_time(
             self.hass, self._scheduled_update, self.next_update

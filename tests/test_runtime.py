@@ -301,3 +301,49 @@ async def test_full_ha_install_options_reload(hass, settings):
         )
         assert hass.states.get("sensor.taiwan_work_school_taitung_tomorrow") is None
         assert await hass.config_entries.async_unload(config_entry.entry_id)
+
+
+@pytest.mark.parametrize("mode", ["hourly", "evening"])
+@pytest.mark.parametrize("offline", [False, True])
+async def test_midnight_fetches_once_in_all_modes(hass, settings, mode, offline):
+    settings = {**settings, "update_mode": mode}
+    coordinator = WorkSchoolCoordinator(hass, None, settings)
+    coordinator.async_set_updated_data(parse_html(HTML))
+    current = [datetime(2026, 10, 22, 15, 59, 59, tzinfo=timezone.utc)]
+    midnight = datetime(2026, 10, 22, 16, 0, tzinfo=timezone.utc)
+    fixture = (Path(__file__).parent / "fixtures/dgpa_20261023_criteria.html").read_text()
+    session, _ = response_session(fixture)
+    if offline:
+        session.get.side_effect = aiohttp.ClientError("offline")
+    updated = MagicMock()
+    unsubscribe = coordinator.async_add_listener(updated)
+    with (
+        patch(
+            "custom_components.taiwan_work_school.coordinator.dt_util.utcnow",
+            side_effect=lambda: current[0],
+        ),
+        patch(
+            "custom_components.taiwan_work_school.coordinator.async_track_point_in_utc_time"
+        ) as track,
+        patch(
+            "custom_components.taiwan_work_school.coordinator.async_get_clientsession",
+            return_value=session,
+        ),
+    ):
+        coordinator.start()
+        assert coordinator.next_update == midnight
+        assert track.call_args_list[0].args[2] == midnight
+        assert track.call_args_list[1].args[2] == midnight
+        current[0] = midnight
+        # The midnight listener changes date labels locally. Only the common
+        # hourly/burst scheduler requests the page, so there is no double fetch.
+        coordinator._midnight(midnight)
+        session.get.assert_not_called()
+        await coordinator._scheduled_update(midnight)
+        session.get.assert_called_once()
+        assert coordinator.next_update == midnight + timedelta(hours=1)
+        assert coordinator.last_update_success is not offline
+        assert coordinator.data.report_date == date(2026, 10, 22 if offline else 23)
+        coordinator.stop()
+    unsubscribe()
+    await coordinator.async_shutdown()

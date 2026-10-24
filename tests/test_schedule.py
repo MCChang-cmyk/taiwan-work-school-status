@@ -38,3 +38,45 @@ def test_invalid(interval, count):
 )
 def test_next_update(now, expected):
     assert next_evening_update(datetime.fromisoformat(now), 3, 6).isoformat() == expected
+
+
+@pytest.mark.parametrize(
+    "now,expected,evening",
+    [
+        ("2026-10-23T23:59:59+08:00", "2026-10-24T00:00:00+08:00", True),
+        ("2026-10-23T23:59:59+08:00", "2026-10-24T00:00:00+08:00", False),
+        ("2026-10-24T00:00:00+08:00", "2026-10-24T01:00:00+08:00", True),
+        ("2026-10-23T15:59:59+00:00", "2026-10-24T00:00:00+08:00", True),
+        ("2026-10-23T19:59:59+08:00", "2026-10-23T20:00:00+08:00", True),
+        ("2026-10-23T20:00:00+08:00", "2026-10-23T20:03:00+08:00", True),
+        ("2026-10-23T20:14:59+08:00", "2026-10-23T20:15:00+08:00", True),
+        ("2026-10-23T20:15:00+08:00", "2026-10-23T21:00:00+08:00", True),
+        ("2026-10-23T20:00:00+08:00", "2026-10-23T21:00:00+08:00", False),
+        ("2026-10-23T11:28:00+08:00", "2026-10-23T12:00:00+08:00", True),
+        ("2026-12-31T23:59:59+08:00", "2027-01-01T00:00:00+08:00", True),
+    ],
+)
+def test_combined_schedule(now, expected, evening):
+    from custom_components.taiwan_work_school.schedule import next_scheduled_update
+
+    actual = next_scheduled_update(datetime.fromisoformat(now), 3, 6, evening)
+    assert actual.isoformat() == expected
+
+
+@pytest.mark.parametrize("count,expected_count", [(1, 24), (6, 29), (16, 39)])
+def test_daily_schedule_deduplicates_20_and_includes_midnight(count, expected_count):
+    from custom_components.taiwan_work_school.schedule import next_scheduled_update
+
+    interval = 1 if count == 16 else 3
+    cursor = datetime.fromisoformat("2026-10-22T23:59:59+08:00")
+    slots = []
+    while True:
+        cursor = next_scheduled_update(cursor, interval, count)
+        if cursor.day != 23:
+            break
+        slots.append(cursor)
+    assert len(slots) == expected_count
+    assert len(set(slots)) == len(slots)
+    assert sum(point.hour == 20 and point.minute == 0 for point in slots) == 1
+    assert slots[0].hour == slots[0].minute == slots[0].second == 0
+    assert {point.hour for point in slots if point.minute == 0} == set(range(24))

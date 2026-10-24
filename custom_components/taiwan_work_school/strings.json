@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Taiwan Work and School Status",
-        "description": "Evening mode starts at 20:00 Asia/Taipei and ends by 20:15. Interval × (count − 1) must be ≤ 15. Hourly mode ignores the evening parameters.",
+        "description": "All modes refresh every hour on the hour in Asia/Taipei, including 00:00. The combined mode adds evening updates from 20:00 through 20:15; overlapping 20:00 requests are merged. Interval × (count − 1) must be ≤ 15; count includes 20:00.",
         "data": {
           "cities": "Counties / cities (multiple)",
           "update_mode": "Update mode",
@@ -25,7 +25,7 @@
     "step": {
       "init": {
         "title": "Counties and schedule",
-        "description": "Evening mode starts at 20:00 Asia/Taipei and ends by 20:15. Interval × (count − 1) must be ≤ 15. Hourly mode ignores the evening parameters.",
+        "description": "All modes refresh every hour on the hour in Asia/Taipei, including 00:00. The combined mode adds evening updates from 20:00 through 20:15; overlapping 20:00 requests are merged. Interval × (count − 1) must be ≤ 15; count includes 20:00.",
         "data": {
           "cities": "Counties / cities (multiple)",
           "update_mode": "Update mode",
@@ -42,8 +42,8 @@
   "selector": {
     "update_mode": {
       "options": {
-        "hourly": "Every hour",
-        "evening": "Daily 20:00–20:15 (Taipei)"
+        "hourly": "Every hour on the hour (including midnight)",
+        "evening": "Hourly + evening burst (including midnight)"
       }
     }
   },

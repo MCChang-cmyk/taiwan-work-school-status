@@ -10,7 +10,7 @@ CONF_CITIES = "cities"
 CONF_MODE = "update_mode"
 CONF_INTERVAL = "evening_interval"
 CONF_COUNT = "evening_count"
-DEFAULTS = {CONF_MODE: "hourly", CONF_INTERVAL: 3, CONF_COUNT: 6}
+DEFAULTS = {CONF_MODE: "evening", CONF_INTERVAL: 3, CONF_COUNT: 6}
 CITIES = {
     "keelung": "基隆市",
     "taipei": "臺北市",

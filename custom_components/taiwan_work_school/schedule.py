@@ -1,4 +1,4 @@
-"""Pure functions for the Taipei evening window."""
+"""Taipei hourly schedule with an optional evening announcement window."""
 
 from datetime import datetime, time, timedelta
 
@@ -24,3 +24,17 @@ def next_evening_update(now: datetime, interval: int, count: int) -> datetime:
             if candidate > local:
                 return candidate
     raise AssertionError("Next day always has an update")
+
+
+def next_scheduled_update(
+    now: datetime, interval: int, count: int, include_evening: bool = True
+) -> datetime:
+    """Next hourly boundary or evening slot; coincident slots are one request.
+
+    A midnight boundary is always included, even when the HA timezone is not Taipei.
+    """
+    local = now.astimezone(TAIPEI)
+    next_hour = local.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    if not include_evening:
+        return next_hour
+    return min(next_hour, next_evening_update(now, interval, count))
