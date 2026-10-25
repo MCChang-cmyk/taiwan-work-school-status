@@ -182,6 +182,24 @@ def parse_html(html: str) -> Report:
                 if key in announcements:
                     raise ParseError("Duplicate county row")
                 announcements[key] = lines
+    # When there are no announcements DGPA replaces all county rows with a
+    # single colspan cell. Accept only that explicit, dated table layout;
+    # zero parsed rows alone must never turn an error page into valid data.
+    empty_notice = any(
+        len(row) == 1 and normalize(row[0]).rstrip("。.") == "無停班停課訊息" for row in parser.rows
+    )
+    if empty_notice:
+        has_headers = any(
+            {"縣市名稱", "是否停止上班上課情形"}.issubset({normalize(cell) for cell in row})
+            for row in parser.rows
+        )
+        if announcements or not has_headers or updated is None:
+            raise ParseError("Invalid or contradictory no-announcement table")
+        return Report(
+            report_date,
+            updated,
+            {city: ("無停班停課訊息。",) for city in CITIES},
+        )
     # Fail closed on layout changes, error pages, and truncated downloads.
     if set(announcements) != set(CITIES):
         raise ParseError(f"Expected 22 county rows, found {len(announcements)}")

@@ -126,3 +126,35 @@ def test_real_criteria_page():
     assert report.combined_status("kaohsiung", date(2026, 10, 24)) == "criteria_not_met"
     assert report.combined_status("hualien", date(2026, 10, 24)) == "criteria_not_met"
     assert report.combined_status("kinmen", date(2026, 10, 23)) == "normal"
+
+
+def test_official_no_announcement_page():
+    html = (FIXTURE.parent / "dgpa_20261025_no_announcements.html").read_text()
+    report = parse_html(html)
+    assert report.report_date == date(2026, 10, 25)
+    assert report.source_updated is not None
+    assert set(report.announcements) == set(CITIES)
+    for city in CITIES:
+        assert report.announcements[city] == ("無停班停課訊息。",)
+        assert report.combined_status(city, date(2026, 10, 25)) == "unannounced"
+        assert report.combined_status(city, date(2026, 10, 26)) == "unannounced"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda html: html.replace("無停班停課訊息。", "服務暫時無法使用"),
+        lambda html: html.replace("縣市名稱", "unknown"),
+        lambda html: html.replace("更新時間", "updated"),
+        lambda html: html.replace("天然災害停止上班", "unknown"),
+        lambda html: html.replace("無停班停課訊息。", "無停班停課訊息。系統錯誤"),
+        lambda html: html.replace(
+            '<TBODY class="Table_Body">',
+            '<TBODY class="Table_Body"><TR><TD>臺北市</TD><TD>今天停止上班、停止上課。</TD></TR>',
+        ),
+    ],
+)
+def test_invalid_empty_pages_are_not_accepted(mutation):
+    html = (FIXTURE.parent / "dgpa_20261025_no_announcements.html").read_text()
+    with pytest.raises(ParseError):
+        parse_html(mutation(html))

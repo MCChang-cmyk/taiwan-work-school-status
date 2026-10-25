@@ -347,3 +347,43 @@ async def test_midnight_fetches_once_in_all_modes(hass, settings, mode, offline)
         coordinator.stop()
     unsubscribe()
     await coordinator.async_shutdown()
+
+
+async def test_full_ha_setup_with_no_announcements(hass, settings):
+    """An official empty table must not cause config-entry setup retries."""
+    from homeassistant import config_entries, loader
+    from homeassistant.bootstrap import async_load_base_functionality
+
+    from custom_components.taiwan_work_school.sensor import StatusSensor
+
+    loader.async_setup(hass)
+    hass.config_entries = config_entries.ConfigEntries(hass, {})
+    await async_load_base_functionality(hass)
+    html = (Path(__file__).parent / "fixtures/dgpa_20261025_no_announcements.html").read_text()
+    session, _ = response_session(html)
+    with (
+        patch(
+            "custom_components.taiwan_work_school.coordinator.async_get_clientsession",
+            return_value=session,
+        ),
+        patch.object(
+            StatusSensor,
+            "target_date",
+            new=property(lambda self: date(2026, 10, 25) + timedelta(days=self.offset)),
+        ),
+    ):
+        form = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        result = await hass.config_entries.flow.async_configure(form["flow_id"], settings)
+        config_entry = result["result"]
+        await hass.async_block_till_done()
+        assert config_entry.state == config_entries.ConfigEntryState.LOADED
+        session.get.assert_called_once()
+        for city in settings["cities"]:
+            announcement = hass.states.get(f"sensor.taiwan_work_school_{city}_announcement")
+            assert announcement.state == "無停班停課訊息。"
+            assert announcement.attributes["report_date"] == "2026-10-25"
+            for day in ("today", "tomorrow"):
+                state = hass.states.get(f"sensor.taiwan_work_school_{city}_{day}")
+                assert state.state == "unannounced"
+                assert state.attributes["announcements"] == ["無停班停課訊息。"]
+        assert await hass.config_entries.async_unload(config_entry.entry_id)

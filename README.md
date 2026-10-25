@@ -18,7 +18,7 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 
 ## 手動安裝
 
-1. 解壓縮 `dist/taiwan_work_school-1.3.0.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
+1. 解壓縮 `dist/taiwan_work_school-1.3.1.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
 2. 確認路徑為 `/config/custom_components/taiwan_work_school/manifest.json`，勿多包一層資料夾。
 3. 重新啟動 Home Assistant。
 4. 開啟「設定 → 裝置與服務 → 新增整合」，搜尋「臺灣停班停課」。
@@ -132,7 +132,7 @@ python3.12 -m venv .venv
 .venv/bin/python scripts/build_release.py
 ```
 
-Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現行 coordinator、config flow、options flow、sensor API 撰寫；其他 HA 版本仍應在自己的環境驗證。頁面若改版，解析會要求完整 22 縣市及有效日期，失敗時標為無法使用，避免將錯誤頁當作正常上班上課。
+Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現行 coordinator、config flow、options flow、sensor API 撰寫；其他 HA 版本仍應在自己的環境驗證。一般公告頁要求完整 22 縣市及有效日期；官方明確提供「無停班停課訊息」空資料表格時，則驗證表頭、公告日期與更新時間後正常載入。其他不完整頁面及錯誤頁仍會標為無法使用，避免誤當作正常上班上課。
 
 實作參考：[Home Assistant 資料更新](https://developers.home-assistant.io/docs/integration_fetching_data/)、[設定流程](https://developers.home-assistant.io/docs/config_entries_config_flow_handler/)、[Sensor](https://developers.home-assistant.io/docs/core/entity/sensor/)。
 
@@ -140,7 +140,7 @@ Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現
 
 若新版 Python 的嚴格驗證回報 `Missing Subject Key Identifier`，整合只針對 `www.dgpa.gov.tw:443` 的這項錯誤重試一次，使用獨立的憑證相容性 context。仍驗證受信任 CA、憑證有效期及主機名稱，不使用 `ssl=False`，不修改 HA 共用的 SSL 設定，也不跟隨重新導向。其他憑證錯誤維持失敗。
 
-已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.3.0`，再重新載入整合。
+已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.3.1`，再重新載入整合。
 
 ## 1.1.0：合併停班停課與專案圖示
 
@@ -165,3 +165,7 @@ HACS 重新下載最新 `main` 後，重新啟動 Home Assistant，並重新整�
 ## 1.3.0：整點、晚間密集與午夜更新整合
 
 兩種模式都固定於每小時整點抓取公告，含每天 00:00。晚間模式另保留 20:00–20:15 可設定的追加更新，20:00 重疊去重；新安裝預設使用合併模式。跨日會先更新實體的今天／明天日期，再由共用排程抓取官方最新資料。
+
+## 1.3.1：支援官方無公告頁面
+
+官方沒有公告時，會用「無停班停課訊息。」單一列取代 22 縣市資料。整合現在能辨識這個有效的空資料版面，清除上一份公告並正常載入；每個縣市的公告顯示「無停班停課訊息。」，今天與明天的狀態為 `unannounced`（尚未宣布），不推斷為照常上班上課。需要有效日期、更新時間及正確表頭，才接受這種空資料頁；缺少縣市資料的異常頁面仍視為抓取失敗。
