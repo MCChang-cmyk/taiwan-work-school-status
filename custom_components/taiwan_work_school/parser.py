@@ -76,10 +76,8 @@ class Report:
     def status(self, city: str, target: date, kind: str) -> str:
         """Never infer full-city closure from a scoped or timed announcement."""
         # Product policy: an explicitly validated empty official page means
-        # normal operation for the dated page and its following day only.
-        if self.no_announcements and self.report_date <= target <= self.report_date + timedelta(
-            days=1
-        ):
+        # normal operation for the dated page only; tomorrow is not announced.
+        if self.no_announcements and target == self.report_date:
             return "normal"
         full: set[str] = set()
         criteria: set[str] = set()

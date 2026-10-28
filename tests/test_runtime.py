@@ -382,11 +382,11 @@ async def test_full_ha_setup_with_no_announcements(hass, settings):
             announcement = hass.states.get(f"sensor.taiwan_work_school_{city}_announcement")
             assert announcement.state == "無停班停課訊息。"
             assert announcement.attributes["report_date"] == "2026-10-25"
-            for day in ("today", "tomorrow"):
+            for day, expected in (("today", "normal"), ("tomorrow", "unannounced")):
                 state = hass.states.get(f"sensor.taiwan_work_school_{city}_{day}")
-                assert state.state == "normal"
+                assert state.state == expected
                 assert state.attributes["no_announcements"] is True
-                assert state.attributes["work_status"] == "normal"
-                assert state.attributes["school_status"] == "normal"
+                assert state.attributes["work_status"] == expected
+                assert state.attributes["school_status"] == expected
                 assert state.attributes["announcements"] == ["無停班停課訊息。"]
         assert await hass.config_entries.async_unload(config_entry.entry_id)
