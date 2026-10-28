@@ -55,6 +55,7 @@ class Report:
     report_date: date
     source_updated: datetime | None
     announcements: dict[str, tuple[str, ...]]
+    no_announcements: bool = False
 
     def combined_status(self, city: str, target: date) -> str:
         """Combine work/school without hiding mixed or incomplete announcements."""
@@ -74,6 +75,12 @@ class Report:
 
     def status(self, city: str, target: date, kind: str) -> str:
         """Never infer full-city closure from a scoped or timed announcement."""
+        # Product policy: an explicitly validated empty official page means
+        # normal operation for the dated page and its following day only.
+        if self.no_announcements and self.report_date <= target <= self.report_date + timedelta(
+            days=1
+        ):
+            return "normal"
         full: set[str] = set()
         criteria: set[str] = set()
         scoped_criteria = False
@@ -199,6 +206,7 @@ def parse_html(html: str) -> Report:
             report_date,
             updated,
             {city: ("無停班停課訊息。",) for city in CITIES},
+            no_announcements=True,
         )
     # Fail closed on layout changes, error pages, and truncated downloads.
     if set(announcements) != set(CITIES):

@@ -52,7 +52,7 @@
       "suspension_status": {
         "state": {
           "suspended": "停止上班、停止上課",
-          "normal": "照常上班、照常上課",
+          "normal": "正常上班上課",
           "partial": "局部或部分時段停止",
           "unannounced": "尚未宣布",
           "undetermined": "無法判定",

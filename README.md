@@ -18,7 +18,7 @@ HACS 僅支援公開的 GitHub 儲存庫；若仍為 Private，新增時會出�
 
 ## 手動安裝
 
-1. 解壓縮 `dist/taiwan_work_school-1.3.1.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
+1. 解壓縮 `dist/taiwan_work_school-1.3.2.zip`，將內含的 `custom_components` 合併至 Home Assistant 設定目錄。
 2. 確認路徑為 `/config/custom_components/taiwan_work_school/manifest.json`，勿多包一層資料夾。
 3. 重新啟動 Home Assistant。
 4. 開啟「設定 → 裝置與服務 → 新增整合」，搜尋「臺灣停班停課」。
@@ -83,7 +83,7 @@ target:
 | 值 | 中文顯示 | 解讀 |
 | --- | --- | --- |
 | `suspended` | 停止上班、停止上課 | 公告為全縣市、全日停班停課 |
-| `normal` | 照常上班、照常上課 | 公告為全縣市照常上班上課 |
+| `normal` | 正常上班上課 | 明確照常公告，或官方有效的「無停班停課訊息」頁面（當日及次日） |
 | `work_only` | 僅停班、照常上課 | 停班但照常上課 |
 | `school_only` | 照常上班、僅停課 | 照常上班但停課 |
 | `partial` | 局部或部分時段停止 | 有鄉鎮、學校或時段限制，須查看完整公告 |
@@ -93,7 +93,7 @@ target:
 | `undetermined` | 無法判定 | 同一天的全縣市公告存在衝突，須查看原文 |
 | `unavailable` | 無法使用 | 網路、HTTP 或頁面格式出錯；保留最後成功資料供查閱 |
 
-所有實體包含 `county`、`report_date`、`source_updated`、`last_successful_fetch`、`next_update`、`source`、`announcements` 屬性。日期狀態實體另有 `target_date`、`work_status` 與 `school_status`，保留個別停班／停課結果。兩者不一致但任一側尚未宣布時顯示 `undetermined`；任一側為局部停止時顯示 `partial`，原文仍須查閱。
+所有實體包含 `county`、`report_date`、`no_announcements`、`source_updated`、`last_successful_fetch`、`next_update`、`source`、`announcements` 屬性。日期狀態實體另有 `target_date`、`work_status` 與 `school_status`，保留個別停班／停課結果。兩者不一致但任一側尚未宣布時顯示 `undetermined`；任一側為局部停止時顯示 `partial`，原文仍須查閱。
 
 解析以網頁標題日期為基準換算「今天／明天」，不以下載時間猜測；跨午夜本地重算今天／明天的實體（不額外連線），避免隔天仍顯示上一天的「明天」。未涵蓋新日期的舊公告會顯示 `unannounced`。公告摘要保留原文日期語意，可能屬於較早日期，請搭配 `report_date` 查看。
 
@@ -140,7 +140,7 @@ Home Assistant 2025.1.4 為本機測試基準（Python 3.12）。本整合以現
 
 若新版 Python 的嚴格驗證回報 `Missing Subject Key Identifier`，整合只針對 `www.dgpa.gov.tw:443` 的這項錯誤重試一次，使用獨立的憑證相容性 context。仍驗證受信任 CA、憑證有效期及主機名稱，不使用 `ssl=False`，不修改 HA 共用的 SSL 設定，也不跟隨重新導向。其他憑證錯誤維持失敗。
 
-已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.3.1`，再重新載入整合。
+已安裝者請在 HACS 的此整合選單重新下載最新 `main`，然後重新啟動 Home Assistant。確認版本為 `1.3.2`，再重新載入整合。
 
 ## 1.1.0：合併停班停課與專案圖示
 
@@ -168,4 +168,10 @@ HACS 重新下載最新 `main` 後，重新啟動 Home Assistant，並重新整�
 
 ## 1.3.1：支援官方無公告頁面
 
-官方沒有公告時，會用「無停班停課訊息。」單一列取代 22 縣市資料。整合現在能辨識這個有效的空資料版面，清除上一份公告並正常載入；每個縣市的公告顯示「無停班停課訊息。」，今天與明天的狀態為 `unannounced`（尚未宣布），不推斷為照常上班上課。需要有效日期、更新時間及正確表頭，才接受這種空資料頁；缺少縣市資料的異常頁面仍視為抓取失敗。
+官方沒有公告時，會用「無停班停課訊息。」單一列取代 22 縣市資料。整合現在能辨識這個有效的空資料版面，清除上一份公告並正常載入；每個縣市的公告顯示「無停班停課訊息。」，1.3.1 當時將今天與明天設為 `unannounced`；1.3.2 起依下方規則改為 `normal`（正常上班上課）。需要有效日期、更新時間及正確表頭，才接受這種空資料頁；缺少縣市資料的異常頁面仍視為抓取失敗。
+
+## 1.3.2：無停班停課訊息時顯示正常上班上課
+
+當官方有效頁面明確顯示「無停班停課訊息。」時，依本整合的顯示規則，該頁日期及次日的今天／明天實體顯示 `normal`（正常上班上課）。公告實體仍保留官方原文，並以 `no_announcements: true` 屬性標示狀態依據。這是整合對空公告頁的預設判定，並非官方對未來日期發布了逐縣市照常公告。
+
+一般公告頁缺少特定日期、未宣布訊息或過期空公告超出涵蓋日期時，仍顯示 `unannounced`。網路與解析失敗維持 `unavailable`，不會顯示正常。實體 ID 與底層 `normal` 值不變。

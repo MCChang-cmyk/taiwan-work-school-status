@@ -33,6 +33,7 @@ class CountySensor(CoordinatorEntity, SensorEntity):
             "county": CITIES[self.city],
             "source": SOURCE_URL,
             "report_date": report.report_date.isoformat(),
+            "no_announcements": report.no_announcements,
             "source_updated": report.source_updated.isoformat() if report.source_updated else None,
             "last_successful_fetch": self.coordinator.fetched_at.isoformat()
             if self.coordinator.fetched_at

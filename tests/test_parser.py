@@ -136,8 +136,8 @@ def test_official_no_announcement_page():
     assert set(report.announcements) == set(CITIES)
     for city in CITIES:
         assert report.announcements[city] == ("無停班停課訊息。",)
-        assert report.combined_status(city, date(2026, 10, 25)) == "unannounced"
-        assert report.combined_status(city, date(2026, 10, 26)) == "unannounced"
+        assert report.combined_status(city, date(2026, 10, 25)) == "normal"
+        assert report.combined_status(city, date(2026, 10, 26)) == "normal"
 
 
 @pytest.mark.parametrize(
@@ -158,3 +158,18 @@ def test_invalid_empty_pages_are_not_accepted(mutation):
     html = (FIXTURE.parent / "dgpa_20261025_no_announcements.html").read_text()
     with pytest.raises(ParseError):
         parse_html(mutation(html))
+
+
+def test_empty_report_does_not_mark_unrelated_dates_as_normal():
+    html = (FIXTURE.parent / "dgpa_20261025_no_announcements.html").read_text()
+    report = parse_html(html)
+    assert report.no_announcements
+    assert report.combined_status("taipei", date(2026, 10, 24)) == "unannounced"
+    assert report.combined_status("taipei", date(2026, 10, 27)) == "unannounced"
+
+
+def test_missing_county_announcement_is_still_unannounced():
+    report = Report(date(2026, 10, 25), None, {"taipei": ()})
+    assert not report.no_announcements
+    assert report.combined_status("taipei", date(2026, 10, 25)) == "unannounced"
+    assert report.combined_status("taipei", date(2026, 10, 26)) == "unannounced"
